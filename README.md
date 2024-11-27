@@ -1,5 +1,3 @@
-# README.md
-
 ## Assistive Academic Document Reader for the Visually Impaired
 
 ### Introduction
