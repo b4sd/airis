@@ -23,9 +23,9 @@ class SpeechRecognitionThread(QThread):
             recognized_text = recognizer.recognize_google(audio, language="vi-VN")
             self.update_signal.emit(recognized_text)
         except sr.UnknownValueError:
-            self.update_signal.emit("Could not understand the audio.")
+            print("Could not understand the audio.")
         except sr.RequestError:
-            self.update_signal.emit("Error connecting to the speech recognition service.")
+            print("Error connecting to the speech recognition service.")
 
 
 class BookReaderApp(QWidget):
@@ -332,5 +332,5 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = BookReaderApp()
     window.show()
-    print("App started, click spacebar to start speech recognition.")
+    print("App started, click 'Shift' to start speech recognition.")
     sys.exit(app.exec_())
