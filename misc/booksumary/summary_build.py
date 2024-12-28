@@ -40,15 +40,10 @@ if temp.strip():
 # Replace original elements with new chunks
 elements = new_elements
 
-# write to el.json in utf-8
-for i, el in enumerate(elements):
-    with open(f"el_{i}.json", "w", encoding="utf-8") as f:
-        f.write(el)
-
 # Summarize using SparseTableSummarizer
-# ST = SparseTableSummarizer(elements, "book-stat_first_5_pages")
-# ST.process()
-# ST.local_save()
+ST = SparseTableSummarizer(elements, "book-stat_first_5_pages")
+ST.process()
+ST.local_save()
 
 # Print page-to-block mapping
 print("Page to Block Mapping:")
