@@ -6,6 +6,7 @@ import sys
 import speech_recognition as sr
 from utils import load_books_from_folder, get_most_similar_book
 from CommandsMapping2 import command_mapping
+from misc.booksumary.summary_query import query_summary
 
 class SpeechRecognitionThread(QThread):
     update_signal = pyqtSignal(str)
@@ -312,7 +313,14 @@ class BookReaderApp(QWidget):
             book_name = get_most_similar_book(book_title)
             print(f"Đang đọc sách {book_name}...")
         elif result['command'] == "tóm tắt":
-            pass
+            book_title = result['parameters']['tên sách']
+            start_page = result['parameters']['trang bắt đầu']
+            end_page = result['parameters']['trang kết thúc']
+            start_chapter = result['parameters']['chương bắt đầu']
+            end_chapter = result['parameters']['chương kết thúc']
+            print(f"Tóm tắt sách {book_title} từ trang {start_page} đến trang {end_page}...")
+            summary = query_summary(book_title, start_page, end_page, start_chapter, end_chapter)
+            print(summary)
         elif result['command'] == "ghi chú":
             pass
         elif result['command'] == "tiếp tục":

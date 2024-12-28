@@ -1,11 +1,7 @@
-from unstructured.partition.auto import partition
 import pickle
+import json
 
-elements = partition(r"book-stat_first_5_pages.pdf")
 
-print("\n\n".join([str(el) for el in elements]))
-
-text = "\n\n".join([str(el) for el in elements])
 
 GROQ_API = "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"
 
@@ -191,19 +187,40 @@ class SparseTableSummarizer:
     
     
         
+    def to_dict(self):
+        """Convert the object state to a JSON-serializable dictionary."""
+        return {
+            "elements": self.elements,
+            "name": self.name,
+            "summaries": self.summaries,
+            "n": self.n,
+            "k": self.k,
+            "st": self.st
+        }
+    
+    @staticmethod
+    def from_dict(data):
+        """Reconstruct the object from a dictionary."""
+        obj = SparseTableSummarizer(data["elements"], data["name"])
+        obj.summaries = data["summaries"]
+        obj.n = data["n"]
+        obj.k = data["k"]
+        obj.st = data["st"]
+        return obj
+    
     def local_save(self):
-        """Save the object state using pickle."""
-        with open(f"{self.name}.pkl", "wb") as f:
-            pickle.dump(self, f)
-        print(f"Object saved to {self.name}.pkl")
-            
+        """Save the object state using JSON."""
+        with open(f"{self.name}.json", "w") as f:
+            json.dump(self.to_dict(), f)
+        print(f"Object saved to {self.name}.json")
+    
     @staticmethod
     def local_load(name):
-        """Load the object state using pickle."""
-        with open(f"{name}.pkl", "rb") as f:
-            obj = pickle.load(f)
-        print(f"Object loaded from {name}.pkl")
-        return obj
+        """Load the object state using JSON."""
+        with open(f"{name}.json", "r") as f:
+            data = json.load(f)
+        print(f"Object loaded from {name}.json")
+        return SparseTableSummarizer.from_dict(data)
     
     def process(self):
 
@@ -223,8 +240,6 @@ class SparseTableSummarizer:
                     
     def query(self, l, r, pretext = None, postText = None):
         print("-------------Query: ", end="")
-        for i in range(l, r+1):
-            print(self.elements[i], end=", ")
         
         len = r - l + 1
         k = 0
@@ -244,28 +259,3 @@ class SparseTableSummarizer:
             print("-------------Done with element: ", "text")
         return summarize
     
-
-summary = "Chưa có gì được tóm tắt"
-
-# 6 elements
-limit = 2000
-
-# Combine the elements but not too much
-temp = ""
-new_elements = []
-for el in elements:
-    if len(str(el)) <= 2:
-        continue
-    if len(temp) + len(str(el)) > limit:
-        new_elements.append(temp)
-        temp = ""
-    temp += str(el) + "\n\n"
-
-new_elements.append(temp)
-
-elements = new_elements
-    
-
-ST = SparseTableSummarizer(elements, "book-stat_first_5_pages")
-ST.process()
-ST.local_save()
