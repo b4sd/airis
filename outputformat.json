@@ -1,0 +1,79 @@
+{
+    "name": "command_schema",
+    "schema": {
+    "type": "object",
+    "properties": {
+        "command": {
+        "type": "string",
+        "description": "The command being issued",
+        "enum": [
+            "đọc sách",
+            "ghi chú",
+            "tóm tắt",
+            "tiếp tục",
+            "dừng đọc",
+            "hỏi đáp",
+            "thoát chương trình",
+            "tắt chương trình",
+            "ngừng chương trình",
+            "không có"
+        ]
+        },
+        "parameters": {
+        "type": "object",
+        "description": "Parameters associated with the command",
+        "properties": {
+            "tên sách": {
+                "type": "string",
+                "description": "The name of the book"
+            },
+            "trang bắt đầu": {
+                "type": "string",
+                "description": "The starting page, can be a specific value or PREVIOUS_STOP_PAGE or \"\""
+            },
+            "trang kết thúc": {
+                "type": "string",
+                "description": "The ending page can be a specific value or PREVIOUS_STOP_PAGE or END_PAGE or \"\""
+            },
+            "chương bắt đầu": {
+                "type": "string",
+                "description": "The starting chapter, can be a specific value or PREVIOUS_STOP_CHAPTER or \"\""
+            },
+            "chương kết thúc": {
+                "type": "string",
+                "description": "The ending chapter can be a specific value or PREVIOUS_STOP_CHAPTER or END_CHAPTER or \"\""
+            },
+            "tiêu đề": {
+                "type": "string",
+                "description": "Title for note-taking command"
+            },
+            "nội dung": {
+                "type": "string",
+                "description": "Content for note-taking command"
+            },
+            "câu hỏi": {
+                "type": "string",
+                "description": "The question for the Q&A command"
+            }
+        },
+        "required": [
+            "tên sách",
+            "trang bắt đầu",
+            "trang kết thúc",
+            "chương bắt đầu",
+            "chương kết thúc",
+            "tiêu đề",
+            "nội dung",
+            "câu hỏi"
+        ],
+        "additionalProperties": false
+        }
+    },
+    "required": [
+        "command",
+        "parameters"
+    ],
+    "additionalProperties": false
+    },
+    "strict": true
+}
