@@ -5,8 +5,12 @@ import json
 import re
 import pyphen
 
+# vi_VN-25hours_single-low.onnx
+# vi_VN-vais1000-medium.onnx
+# finetuning_pretrained_vi.onnx
+
 class TTSProcessor:
-    def __init__(self, vocab_filename, model_filename="vi_VN-vais1000-medium.onnx", output_filename="output.wav"):
+    def __init__(self, vocab_filename, model_filename="finetuning_pretrained_vi.onnx", output_filename="output.wav"):
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Paths for vocabulary, model, and output files
@@ -22,7 +26,7 @@ class TTSProcessor:
         self.length_scale = 2
 
         # Initialize Vietnamese checker
-        self.vn_checker = self.VNChecker(self.vocab_path)
+        self.vn_checker = self.VNChecker(self.vocab_path, self)
 
     def split_syllables(self, text):
         return self.en_dic.inserted(text)
@@ -42,22 +46,28 @@ class TTSProcessor:
         return json.loads(data)
 
     def ipa2vn(self, text):
-        text = fr"/{text}/"
-        print("Converting", text)
         text = text.replace("r", "ɹ")
         text = text.replace("ʤ", "dʒ")
         text = text.replace("ʧ", "tʃ")
         text = text.replace("g", "ɡ")
-
+        print("Converting", text)
         # Run Node.js subprocess and capture output
+
+        # Subprocess directory is the script directory
+        os.chdir(self.script_dir)
+
+        start_text = text
+
         result = subprocess.run(['node', 'ipa_to_vn.js', text], stdout=subprocess.PIPE, text=True, encoding='utf-8')
         result = result.stdout.strip()
         result = self.fix_to_json(result)
+        print("IPA to VN", start_text, result[0]['vie'])
         return result[0]['vie']
 
     class VNChecker:
-        def __init__(self, vocabulary_path):
+        def __init__(self, vocabulary_path, parent_instance):
             self.data = set()
+            self.parent_instance = parent_instance  # Store the parent instance (TTSProcessor)
             delim = r' -,.;:!?()'
             with open(vocabulary_path, 'r', encoding='utf-8') as f:
                 for line in f:
@@ -74,10 +84,22 @@ class TTSProcessor:
             new_word = TTSProcessor.keep_vietnamese(None, word)
             if self.check(new_word.lower()):
                 return word
+            
+            # try:
+            #     ipa_word = ipa.convert(new_word)
+            #     print("To IPA", new_word, ipa_word)
+            #     # Use the parent instance to call ipa2vn
+            #     return self.parent_instance.ipa2vn(ipa_word).replace('-', ' ')
+            # except Exception as e:
+            #     print("Error converting", new_word, e)
+                
             try:
-                return TTSProcessor.split_syllables(None, new_word)
-            except:
-                return word
+                return self.parent_instance.split_syllables(new_word).replace('-', ' ')
+            except Exception as e:
+                print("Error splitting", new_word, e)
+            
+            
+            return word
 
         def sentence_to_vn(self, sentence):
             sentence = sentence.replace('\n', ' ')
@@ -86,7 +108,7 @@ class TTSProcessor:
             sentence = sentence.strip()
             print(sentence)
             return ' '.join([self.to_vn(word) for word in sentence.split(' ')])
-
+        
     def to_speech(self, text, output_file="output.wav"):
         text = text.replace('\n', ' ')
         text = self.vn_checker.sentence_to_vn(text)
@@ -103,3 +125,16 @@ class TTSProcessor:
         for file in os.listdir(path):
             if file.endswith(".wav"):
                 os.remove(os.path.join(path, file))
+
+# tts = TTSProcessor("Viet74K.txt")
+# print("Harry ", tts.vn_checker.to_vn("Harry"))
+# print("Potter ", tts.vn_checker.to_vn("Potter"))
+# print("Hermione ", tts.vn_checker.to_vn("Hermione"))
+# print("Granger ", tts.vn_checker.to_vn("Granger"))
+# print("Ron ", tts.vn_checker.to_vn("Ron"))
+# print("Weasley ", tts.vn_checker.to_vn("Weasley"))
+
+# # To vn
+# harry = "Harry"
+# harry = ipa.convert(harry)
+# print("Harry ", harry, tts.ipa2vn(harry))
