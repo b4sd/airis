@@ -3,3 +3,4 @@ __pycache__/
 .env
 vision_key.json
 books/*.png
+*.wav

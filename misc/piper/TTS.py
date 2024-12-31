@@ -71,15 +71,18 @@ class TTSProcessor:
             return word in self.data
 
         def to_vn(self, word):
-            print("Converting", word)
             new_word = TTSProcessor.keep_vietnamese(None, word)
-            print("New word", new_word)
             if self.check(new_word.lower()):
                 return word
-            return TTSProcessor.split_syllables(None, new_word)
+            try:
+                return TTSProcessor.split_syllables(None, new_word)
+            except:
+                return word
 
         def sentence_to_vn(self, sentence):
             sentence = sentence.replace('\n', ' ')
+            sentence = sentence.replace('\t', ' ')
+            sentence = sentence.replace(':', '.')
             sentence = sentence.strip()
             print(sentence)
             return ' '.join([self.to_vn(word) for word in sentence.split(' ')])
@@ -94,3 +97,9 @@ class TTSProcessor:
         command = f'echo "{text}" | .\\piper.exe -m {self.model_path} -f {output_file} --length_scale {self.length_scale} --sentence_silence {self.sentence_silence}'
         print(command)
         os.system(command)
+
+    def remove_audio_files(self, path):
+        path = os.path.join(self.script_dir, path)
+        for file in os.listdir(path):
+            if file.endswith(".wav"):
+                os.remove(os.path.join(path, file))
