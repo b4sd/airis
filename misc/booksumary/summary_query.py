@@ -1,8 +1,5 @@
 # Display the tree
 import json
-
-print("asldkjf")
-
 from misc.booksumary.summary_tree import SparseTableSummarizer
 
 
