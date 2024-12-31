@@ -7,6 +7,7 @@ import speech_recognition as sr
 from utils import load_books_from_folder, get_most_similar_book
 from CommandsMapping2 import command_mapping
 from misc.booksumary.summary_query import query_summary
+from LLM.getCompletion import getCompletion
 
 class SpeechRecognitionThread(QThread):
     update_signal = pyqtSignal(str)
@@ -19,7 +20,7 @@ class SpeechRecognitionThread(QThread):
             with microphone as source:
                 # recognizer.adjust_for_ambient_noise(source, duration=1)
                 print("Listening...")
-                audio = recognizer.listen(source, timeout=5)
+                audio = recognizer.listen(source, timeout=10, phrase_time_limit=30)
 
             recognized_text = recognizer.recognize_google(audio, language="vi-VN")
             self.update_signal.emit(recognized_text)
@@ -27,7 +28,6 @@ class SpeechRecognitionThread(QThread):
             print("Could not understand the audio.")
         except sr.RequestError:
             print("Error connecting to the speech recognition service.")
-
 
 class BookReaderApp(QWidget):
     def __init__(self):
@@ -265,6 +265,7 @@ class BookReaderApp(QWidget):
 
     def go_to_home(self):
         self.stacked_widget.setCurrentWidget(self.main_screen)
+        self.current_book = None
 
     def open_book(self, book_title):
         self.current_book = self.books[book_title]
@@ -292,6 +293,8 @@ class BookReaderApp(QWidget):
         """Detect spacebar press to trigger the speech recognition"""
         if event.key() == Qt.Key_Shift:
             self.start_speech_recognition()
+        if event.key() == Qt.Key_S and self.current_book != None:
+            pass # stop speech 
 
     def start_speech_recognition(self):
         """Start the speech recognition thread"""
@@ -323,10 +326,15 @@ class BookReaderApp(QWidget):
             print(summary)
         elif result['command'] == "ghi chú":
             pass
-        elif result['command'] == "tiếp tục":
-            pass
-        elif result['command'] == "dừng đọc":
-            pass
+        elif result['command'] == "hỏi đáp":
+            question = result['parameters']['câu hỏi']
+            print(f"Hỏi: {question}")
+            answer = getCompletion(userPrompt=question, promptStyle="QA")
+            print(f"Trả lời: {answer}")
+        # elif result['command'] == "tiếp tục":
+        #     pass
+        # elif result['command'] == "dừng đọc":
+        #     pass
         else:
             pass
 
