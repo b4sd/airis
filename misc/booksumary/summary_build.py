@@ -1,8 +1,8 @@
-from misc.booksumary.summary_tree import SparseTableSummarizer
+from summary_tree import SparseTableSummarizer
 from unstructured.partition.auto import partition
 
 # Extract text from the PDF
-elements = partition(r"book-stat_first_5_pages.pdf")
+elements = partition(r"misc/booksumary/book.pdf")
 
 # Combine extracted elements into a single text
 text = "\n\n".join([str(el) for el in elements])
@@ -37,11 +37,13 @@ for page_number, el in enumerate(elements, start=1):
 if temp.strip():
     new_elements.append(temp.strip())
 
+print(len(new_elements))
+
 # Replace original elements with new chunks
 elements = new_elements
 
 # Summarize using SparseTableSummarizer
-ST = SparseTableSummarizer(elements, "book-stat_first_5_pages")
+ST = SparseTableSummarizer(elements, "book")
 ST.process()
 ST.local_save()
 
