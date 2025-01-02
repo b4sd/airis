@@ -8,6 +8,7 @@ from utils import load_books_from_folder, get_most_similar_book
 from CommandsMapping2 import command_mapping
 from misc.booksumary.summary_query import query_summary
 from LLM.getCompletion import getCompletion
+from books.getBooks import getBooks
 
 class SpeechRecognitionThread(QThread):
     update_signal = pyqtSignal(str)
@@ -314,7 +315,12 @@ class BookReaderApp(QWidget):
         elif result['command'] == "đọc sách":
             book_title = result['parameters']['tên sách']
             book_name = get_most_similar_book(book_title)
-            print(f"Đang đọc sách {book_name}...")
+            
+            if book_name == "Not sure":
+                print(f"Không tìm thấy sách {book_title}.")
+            else:
+                # content = get_book_content(book_name) # or redirect to the Thread Reading book + develope (store last read time into logs)
+                print(f"Đang đọc sách {book_name}...")
         elif result['command'] == "tóm tắt":
             book_title = result['parameters']['tên sách']
             start_page = result['parameters']['trang bắt đầu']
@@ -331,6 +337,9 @@ class BookReaderApp(QWidget):
             print(f"Hỏi: {question}")
             answer = getCompletion(userPrompt=question, promptStyle="QA")
             print(f"Trả lời: {answer}")
+        elif result['command'] == "get all books from database":
+            books_lst = getBooks()
+            text = "Đây là danh sách các sách trong cơ sở dữ liệu: " + ", ".join(books_lst)
         # elif result['command'] == "tiếp tục":
         #     pass
         # elif result['command'] == "dừng đọc":
