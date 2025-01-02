@@ -1,5 +1,7 @@
 import os
 import fitz  # PyMuPDF
+from fuzzywuzzy import process
+from books.getBooks import getBooks
 
 def load_books_from_folder(folder_path):
     """ Load PDF books from the specified folder """
@@ -42,7 +44,6 @@ def extract_pdf_content(pdf_path, dpi=300):
         content.append(image_path)  # Store the path to the saved page image
     return content
 
-from fuzzywuzzy import process
 
 def find_most_similar_book(input_book, book_list, threshold=80):
     # Use fuzzywuzzy's process.extractOne to find the most similar book
@@ -118,6 +119,6 @@ def get_book_list():
 def get_most_similar_book(input_book, threshold=80):
     if input_book == "" or input_book is None:
         return "No input book provided"
-    book_list = get_book_list()
+    book_list = getBooks()
     book_name, score =  find_most_similar_book(input_book, book_list, threshold)
     return book_name
