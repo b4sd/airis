@@ -12,6 +12,7 @@ import time
 
 
 class BookToSpeech(QThread):
+    # say_signal = pyqtSignal(str)
     def __init__(self):
         super(BookToSpeech, self).__init__()
         
@@ -27,6 +28,8 @@ class BookToSpeech(QThread):
         # Initialize pygame mixer and event system
         pygame.init()
         pygame.mixer.init()
+
+        
 
         # Set custom event for detecting when audio ends
         self.audio_end_event = pygame.USEREVENT + 1
@@ -154,6 +157,14 @@ class BookToSpeech(QThread):
             if pygame.mixer.music.get_busy():
                 self.pause()  # Pause book reading
 
+            pygame.mixer.music.stop()
+            pygame.mixer.music.unload()
+            pygame.mixer.init()
+
+            # Delete temp if exists
+            if os.path.exists("sound/temp_say_audio.mp3"):
+                os.remove("sound/temp_say_audio.mp3")
+
             output_file = "temp_say_audio.mp3"
             self.text_to_speech(text, AudioFolder="sound", output_file=output_file)
 
@@ -178,8 +189,17 @@ class BookToSpeech(QThread):
             print(f"Error saying text: {e}")
 
     def summary_page(self, book_title, start_page, end_page, start_chapter, end_chapter):
+        print(f"book_title: {book_title}, start_page: {start_page}, end_page: {end_page}, start_chapter: {start_chapter}, end_chapter: {end_chapter}")
         try:
-            self.say(query_summary_page(book_title, start_page, end_page, start_chapter, end_chapter))
+            if start_page == "" and end_page == "":
+                # Get last 2 blocks id
+                start_block = max(0, self.current_index - 1)
+                end_block = self.current_index
+                res = query_summary_block(book_title, start_block, end_block)
+                self.say(res)
+            else:
+                res = query_summary_page(book_title, start_page, end_page, start_chapter, end_chapter)
+                self.say(res)
         except Exception as e:
             print(f"Error saying text: {e}")
 

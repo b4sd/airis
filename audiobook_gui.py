@@ -19,7 +19,7 @@ class BookReaderApp(QWidget):
     resume_signal = pyqtSignal()
     say_signal = pyqtSignal(str)
     next_signal = pyqtSignal()
-    summary_page_signal = pyqtSignal(str, int, int, int, int)
+    summary_page_signal = pyqtSignal(str, str, str, str, str)
     stop_say_signal = pyqtSignal()
     qna_signal = pyqtSignal(str)
     qna_with_context_signal = pyqtSignal(str)
@@ -305,6 +305,26 @@ class BookReaderApp(QWidget):
         """Detect spacebar press to trigger the speech recognition"""
         if event.key() == Qt.Key_Shift:
             self.start_speech_recognition()
+        # Key R to resume audio
+        elif event.key() == Qt.Key_R:
+            print("Key R detected, resuming audio...")
+            self.resume_signal.emit()
+        # Key P to pause audio
+        elif event.key() == Qt.Key_P:
+            print("Key P detected, pausing audio...")
+            self.pause_signal.emit()
+        # Key S to stop saying
+        elif event.key() == Qt.Key_S:
+            print("Key S detected, stopping speech...")
+            self.stop_say_signal.emit()
+        # Key N to say next
+        elif event.key() == Qt.Key_N:
+            print("Key N detected, saying next...")
+            self.next_signal.emit()
+        # Key Q to quit
+        elif event.key() == Qt.Key_Q:
+            print("Key Q detected, quitting...")
+            self.close()
         
     def start_speech_recognition(self):
         """Start speech recognition automatically shutting down after use."""
