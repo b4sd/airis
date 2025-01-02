@@ -5,13 +5,24 @@ from PyQt5.QtCore import QThread, pyqtSignal, QTimer
 import sys
 from utils import load_books_from_folder, get_most_similar_book
 from CommandsMapping2 import command_mapping
-from misc.booksumary.summary_query import query_summary
+from misc.booksumary.summary_query import query_summary_page, query_summary_block
 from LLM.getCompletion import getCompletion
 from books.getBooks import getBooks
 from SpeakerThread import SpeakerThread
 from SpeechRecognitionThread import SpeechRecognitionThread
+from booktospeech import BookToSpeech
 
 class BookReaderApp(QWidget):
+    # Signals to communicate with the BookToSpeech thread
+    change_book_signal = pyqtSignal(str)
+    pause_signal = pyqtSignal()
+    resume_signal = pyqtSignal()
+    say_signal = pyqtSignal(str)
+    next_signal = pyqtSignal()
+    summary_page_signal = pyqtSignal(str, int, int, int, int)
+    stop_say_signal = pyqtSignal()
+    qna_signal = pyqtSignal(str)
+    qna_with_context_signal = pyqtSignal(str)
     def __init__(self):
         super().__init__()
 
@@ -28,12 +39,28 @@ class BookReaderApp(QWidget):
         self.speech_thread = None
         self.init_ui()
         
-        self.speaker_thread = SpeakerThread()
-        self.speaker_thread.text_signal.connect(self.speaker_thread.handle_text_signal)
-        self.speaker_thread.stop_signal.connect(self.speaker_thread.stop_audio)
-        self.speaker_thread.pause_signal.connect(self.speaker_thread.pause_audio)
-        self.speaker_thread.continue_signal.connect(self.speaker_thread.unpause_audio)
-        self.speaker_thread.start()
+        # self.speaker_thread = SpeakerThread()
+        # self.speaker_thread.text_signal.connect(self.speaker_thread.handle_text_signal)
+        # self.speaker_thread.stop_signal.connect(self.speaker_thread.stop_audio)
+        # self.speaker_thread.pause_signal.connect(self.speaker_thread.pause_audio)
+        # self.speaker_thread.continue_signal.connect(self.speaker_thread.unpause_audio)
+        # self.speaker_thread.start()
+
+        self.booktospeech_thread = BookToSpeech()
+
+        # Connect controller signals to BookToSpeech methods
+        self.change_book_signal.connect(self.booktospeech_thread.change_book)
+        self.pause_signal.connect(self.booktospeech_thread.pause)
+        self.resume_signal.connect(self.booktospeech_thread.resume)
+        self.next_signal.connect(self.booktospeech_thread.play_next)
+        self.say_signal.connect(self.booktospeech_thread.say)
+        self.summary_page_signal.connect(self.booktospeech_thread.summary_page)
+        self.stop_say_signal.connect(self.booktospeech_thread.no_say)
+        self.qna_signal.connect(self.booktospeech_thread.qna)
+        self.qna_with_context_signal.connect(self.booktospeech_thread.qna_with_context)
+
+        # Start the BookToSpeech thread
+        self.booktospeech_thread.start()
 
     def init_ui(self):
         # Set the background color to white
@@ -312,6 +339,9 @@ class BookReaderApp(QWidget):
             else:
                 # content = get_book_content(book_name) # or redirect to the Thread Reading book + develope (store last read time into logs)
                 print(f"Đang đọc sách {book_name}...")
+                # Emit signal to change the book
+                self.change_book_signal.emit(book_name)
+
         elif result['command'] == "tóm tắt":
             book_title = result['parameters']['tên sách']
             start_page = result['parameters']['trang bắt đầu']
@@ -319,42 +349,50 @@ class BookReaderApp(QWidget):
             start_chapter = result['parameters']['chương bắt đầu']
             end_chapter = result['parameters']['chương kết thúc']
             print(f"Tóm tắt sách {book_title} từ trang {start_page} đến trang {end_page}...")
-            summary = query_summary(book_title, start_page, end_page, start_chapter, end_chapter)
-            print(summary)
+            # summary = query_summary_page(book_title, start_page, end_page, start_chapter, end_chapter)
+            # print(summary)
+            # Emit signal to say the summary
+            self.summary_page_signal.emit(book_title, start_page, end_page, start_chapter, end_chapter)
         elif result['command'] == "ghi chú":
             pass
         elif result['command'] == "hỏi đáp":
             question = result['parameters']['câu hỏi']
             print(f"Hỏi: {question}")
-            answer = getCompletion(userPrompt=question, promptStyle="QA")
-            print(f"Trả lời: {answer}")
+            # Emit signal to ask the question
+            self.qna_with_context_signal.emit(question)
+
+            # answer = getCompletion(userPrompt=question, promptStyle="QA")
+            # print(f"Trả lời: {answer}")
+
         elif result['command'] == "get all books from database":
             books_lst = getBooks()
             text = "Đây là danh sách các sách trong cơ sở dữ liệu: " + ", ".join(books_lst)
-        # elif result['command'] == "tiếp tục":
-        #     pass
-        # elif result['command'] == "dừng đọc":
-        #     pass
+        elif result['command'] == "tiếp tục":
+            # Emit signal to resume the audio
+            self.resume_signal.emit()
+        elif result['command'] == "dừng đọc":
+            # Emit signal to pause the audio
+            self.pause_signal.emit()
         else:
             pass
 
-        self.speakText(text_to_say="Chào bạn, tôi là một trợ lý ảo!")
+        # self.speakText(text_to_say="Chào bạn, tôi là một trợ lý ảo!")
     
-    def speakText(self, text_to_say = "Chào bạn, tôi là một trợ lý ảo!"):
-        """Start the Speaker thread"""
-        self.speaker_thread.text_signal.emit(text_to_say)  # Send the text to be spoken
+    # def speakText(self, text_to_say = "Chào bạn, tôi là một trợ lý ảo!"):
+    #     """Start the Speaker thread"""
+    #     self.speaker_thread.text_signal.emit(text_to_say)  # Send the text to be spoken
 
-    def pause_audio(self):
-        """Pause the audio"""
-        self.speaker_thread.pause_signal.emit()
+    # def pause_audio(self):
+    #     """Pause the audio"""
+    #     self.speaker_thread.pause_signal.emit()
 
-    def resume_audio(self):
-        """Resume the audio"""
-        self.speaker_thread.continue_signal.emit()
+    # def resume_audio(self):
+    #     """Resume the audio"""
+    #     self.speaker_thread.continue_signal.emit()
 
-    def stop_audio(self):
-        """Stop the audio"""
-        self.speaker_thread.stop_signal.emit()
+    # def stop_audio(self):
+    #     """Stop the audio"""
+    #     self.speaker_thread.stop_signal.emit()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
