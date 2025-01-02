@@ -1,6 +1,6 @@
 # Display the tree
 import json
-from misc.booksumary.summary_tree import SparseTableSummarizer
+from summary_tree import SparseTableSummarizer
 
 
 # "command": "tóm tắt", 
@@ -12,10 +12,10 @@ from misc.booksumary.summary_tree import SparseTableSummarizer
 #             "chương kết thúc": "'?' || 'ENDCHAPTER'",
 #         }},
 
-def query_summary(book_name, start_page, end_page, start_chapter, end_chapter):
-    ST = SparseTableSummarizer.local_load('misc/booksumary/book-stat_first_5_pages')
+def query_summary_page(book_name, start_page, end_page, start_chapter, end_chapter):
+    ST = SparseTableSummarizer.local_load('misc/booksumary/book')
     block_mapping = {}
-    with open("misc/booksumary/block_mapping_book-stat.json", "r") as f:
+    with open("misc/booksumary/block_mapping_book.json", "r") as f:
         block_mapping = json.load(f)
 
     # start block is min block of start page
@@ -26,6 +26,10 @@ def query_summary(book_name, start_page, end_page, start_chapter, end_chapter):
 
     return ST.query(start_block, end_block)
 
+def query_summary_block(book_name, start_block, end_block):
+    ST = SparseTableSummarizer.local_load('misc/booksumary/book')
+    return ST.query(start_block, end_block)
 
-# print(query_summary("Tư duy nhanh và chậm", 10, 10, 1, 2))
+
+# print(query_summary("niggest", 10, 10, 1, 2))
 

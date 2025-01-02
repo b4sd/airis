@@ -240,6 +240,9 @@ class SparseTableSummarizer:
                     
     def query(self, l, r, pretext = None, postText = None):
         print("-------------Query: ", end="")
+
+        if (l == r):
+            return self.st[l][0]
         
         len = r - l + 1
         k = 0

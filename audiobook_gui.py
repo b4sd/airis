@@ -3,32 +3,13 @@ from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtCore import QThread, pyqtSignal, QTimer
 import sys
-import speech_recognition as sr
 from utils import load_books_from_folder, get_most_similar_book
 from CommandsMapping2 import command_mapping
 from misc.booksumary.summary_query import query_summary
 from LLM.getCompletion import getCompletion
 from books.getBooks import getBooks
-
-class SpeechRecognitionThread(QThread):
-    update_signal = pyqtSignal(str)
-
-    def run(self):
-        recognizer = sr.Recognizer()
-        microphone = sr.Microphone()
-
-        try:
-            with microphone as source:
-                # recognizer.adjust_for_ambient_noise(source, duration=1)
-                print("Listening...")
-                audio = recognizer.listen(source, timeout=10, phrase_time_limit=30)
-
-            recognized_text = recognizer.recognize_google(audio, language="vi-VN")
-            self.update_signal.emit(recognized_text)
-        except sr.UnknownValueError:
-            print("Could not understand the audio.")
-        except sr.RequestError:
-            print("Error connecting to the speech recognition service.")
+from SpeakerThread import SpeakerThread
+from SpeechRecognitionThread import SpeechRecognitionThread
 
 class BookReaderApp(QWidget):
     def __init__(self):
@@ -37,8 +18,6 @@ class BookReaderApp(QWidget):
         self.setWindowTitle("Book Reader")
         self.setGeometry(100, 100, 1600, 900)  # Increased window size for better view
 
-        # self.setWindowFlags(Qt.FramelessWindowHint)
-
         # Folder where books are located
         self.books_folder = "books"  # Path to the folder containing the books
         self.books = load_books_from_folder(self.books_folder)  # Load books from the folder
@@ -46,10 +25,15 @@ class BookReaderApp(QWidget):
         self.current_book = None
         self.current_page = 0
         
-        self.speech_thread = SpeechRecognitionThread()
-        # self.speech_thread.update_signal.connect(self.open_book)
-        self.speech_thread.update_signal.connect(self.handle_recognized_text)
+        self.speech_thread = None
         self.init_ui()
+        
+        self.speaker_thread = SpeakerThread()
+        self.speaker_thread.text_signal.connect(self.speaker_thread.handle_text_signal)
+        self.speaker_thread.stop_signal.connect(self.speaker_thread.stop_audio)
+        self.speaker_thread.pause_signal.connect(self.speaker_thread.pause_audio)
+        self.speaker_thread.continue_signal.connect(self.speaker_thread.unpause_audio)
+        self.speaker_thread.start()
 
     def init_ui(self):
         # Set the background color to white
@@ -294,13 +278,18 @@ class BookReaderApp(QWidget):
         """Detect spacebar press to trigger the speech recognition"""
         if event.key() == Qt.Key_Shift:
             self.start_speech_recognition()
-        if event.key() == Qt.Key_S and self.current_book != None:
-            pass # stop speech 
-
+        
     def start_speech_recognition(self):
-        """Start the speech recognition thread"""
-        if not self.speech_thread.isRunning():
+        """Start speech recognition automatically shutting down after use."""
+        if self.speech_thread is None or not self.speech_thread.isRunning():
+            self.speech_thread = SpeechRecognitionThread()
+            self.speech_thread.update_signal.connect(self.handle_recognized_text)
+            self.speech_thread.finished.connect(self.cleanup_thread)  # Automatically clean up
             self.speech_thread.start()
+
+    def cleanup_thread(self):
+        """Cleanup after the thread finishes."""
+        self.speech_thread = None
 
     def handle_recognized_text(self, text):
         """Handle the recognized speech"""
@@ -309,6 +298,8 @@ class BookReaderApp(QWidget):
         result = command_mapping(text)
         print("Command dịch được: ", result)
 
+        speaker_script = ""
+        
         if result['command'] in ['thoát chương trình', 'tắt chương trình', 'ngừng chương trình']:
             print("Thoát chương trình...")
             self.close()
@@ -347,11 +338,23 @@ class BookReaderApp(QWidget):
         else:
             pass
 
-        # # Convert the response to speech
-        # pause_audio()
-        # text_to_speech(response, "respond.mp3")
-        # play_audio("respond.mp3")
+        self.speakText(text_to_say="Chào bạn, tôi là một trợ lý ảo!")
     
+    def speakText(self, text_to_say = "Chào bạn, tôi là một trợ lý ảo!"):
+        """Start the Speaker thread"""
+        self.speaker_thread.text_signal.emit(text_to_say)  # Send the text to be spoken
+
+    def pause_audio(self):
+        """Pause the audio"""
+        self.speaker_thread.pause_signal.emit()
+
+    def resume_audio(self):
+        """Resume the audio"""
+        self.speaker_thread.continue_signal.emit()
+
+    def stop_audio(self):
+        """Stop the audio"""
+        self.speaker_thread.stop_signal.emit()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
