@@ -1,6 +1,6 @@
 # Display the tree
 import json
-from summary_tree import SparseTableSummarizer
+from misc.booksumary.summary_tree import SparseTableSummarizer
 
 
 # "command": "tóm tắt", 
