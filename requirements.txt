@@ -1,0 +1,13 @@
+pyaudio
+google-cloud-speech
+google-auth
+google-cloud-texttospeech
+playsound
+groq
+python-dotenv
+SpeechRecognition
+fuzzywuzzy
+PyQt5
+python-Levenshtein
+PyMuPDF
+openai
