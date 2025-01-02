@@ -17,8 +17,7 @@ model = "llama3-70b-8192"
 
 requirements = """
 
-Nếu bạn gặp heading khởi đầu như "Chương" hay "Phần", hoặc là heading có numbering, khi tóm tắt bạn hãy tạo ra các dấu hiệu để ngăn cách giữa các phần khác nhau.
-Cấu trúc của dấu hiệu là "###" + "Tên heading" + "###" (không bao gồm dấu ngoặc kép). Ví dụ: "###Chương 1###" hoặc "###1.1###".
+Hãy bỏ các kí hiệu đặc biệt như #, *, _, hoặc các kí hiệu đặc biệt khác. Đừng thêm xuống dòng không cần thiết. Loại bỏ các heading và viết thành đoạn văn văn nói.
 Khi bạn đọc và gặp dấu hiệu này, hãy hiểu rằng đó là một phần mới trong văn bản. Các dấu hiệu này chỉ để giúp bạn hiểu cấu trúc của văn bản, không phải là phần của văn bản gốc.
 Chỉ trả về đoạn văn bản đã được xử lí, không được nói gì khác.
 Không bao gồm bài tập, ví dụ hoặc thông tin không cần thiết khác, chỉ bao gồm các khái niệm, ý chính và thông tin cần thiết, cô đọng và dễ hiểu.
