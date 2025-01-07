@@ -197,7 +197,7 @@ def blockify(partitions, char_limit=2000):
             return
         while True:
             try:
-                # current_block["content"] = fix_typo(current_block["content"])
+                current_block["content"] = fix_typo(current_block["content"])
                 break
             except:
                 sleep(2)
@@ -311,7 +311,7 @@ def get_block_content(block_index, book_name):
                 content_lines.append(line.strip())
     return "\n".join(content_lines) if content_lines else None
 
-book_name = "ho-guom"
+book_name = "thanh-giong"
 file_path = root + r"\\misc\booksumary" + "\\" + book_name + ".pdf"
 sections = process_plumber(file_path)
 
@@ -326,7 +326,7 @@ sections = process_plumber(file_path)
 blocks, page_to_block = blockify(sections)
 start_page, end_page = 1, 5
 block_list = pages_to_block_query(start_page, end_page, page_to_block)
-print("block list:", block_list)
+# print("block list:", block_list)
 write_blocks_to_file(blocks, book_name)
 
 # Path to the block file
