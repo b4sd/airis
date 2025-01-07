@@ -3,13 +3,19 @@ import pdfplumber
 # import pytesseract
 from collections import defaultdict
 from groq import Groq
+from openai import OpenAI
+from time import sleep
+# from dotenv import load_dotenv
+# load_dotenv()
 
 import os
 root = os.getcwd()
 
-client = Groq(
-    api_key=os.environ.get("GROQ_API_KEY"),
-)
+api_key = 'da7862c3-43f5-49ae-bad5-19ce3fbf4139'
+client = OpenAI(
+            base_url="https://api.sambanova.ai/v1",
+            api_key=api_key,
+        )
 
 def fix_typo(text):
     # Prompt initial notes
@@ -17,18 +23,19 @@ def fix_typo(text):
         messages=[
             {
                 "role": "system",
-                "content":  "Bạn là một trợ lý ảo giúp sửa lỗi chính tả. Hãy sửa lỗi chính tả cho đoạn văn bản được đưa vào."
-                            "Chỉ được sửa lỗi chính tả với những từ không đúng chính tả. Sửa lỗi dựa vào ngữ cảnh đoạn văn."
-                            "Nếu một từ sai chính tả, thử sắp xếp lại các chữ để tạo ra từ có nghĩa. Nếu không, hãy sửa theo cách bạn muốn."
-                            "Không thêm, không bớt, không thay đổi câu văn."
-                            "Không giải thích, không dài dòng. Trả lời cả những phần không bị sửa."
+                "content":  """Bạn là một trợ lý ảo giúp sửa lỗi chính tả. Hãy sửa lỗi chính tả cho đoạn văn bản được đưa vào.
+                            Chỉ được sửa lỗi chính tả với những từ không đúng chính tả. Sửa lỗi dựa vào ngữ cảnh đoạn văn.
+                            Nếu một từ sai chính tả, thử sắp xếp lại các chữ để tạo ra từ có nghĩa. Nếu không, hãy sửa theo cách bạn muốn.
+                            Không thêm, không bớt, không thay đổi câu văn.
+                            Không giải thích, không dài dòng. Trả lời cả những phần không bị sửa.
+                            Ví dụ: input: mãgn xà. output: mãng xà."""
             },
             {
                 "role": "user",
                 "content": text
             }
         ],
-        model="llama-3.3-70b-versatile",
+        model="Qwen2.5-72B-Instruct",
     )
     return query.choices[0].message.content
 
@@ -52,6 +59,8 @@ def process_plumber(file_path):
     with pdfplumber.open(file_path) as pdf:
         for page_number, page in enumerate(pdf.pages, start=1):
             lines = page.extract_text().splitlines()
+            if len(lines) == 0:
+                continue
             chars = sorted(page.chars, key=lambda c: (c["top"], c["x0"]))  
 
             line_positions = []
@@ -92,6 +101,8 @@ def process_plumber(file_path):
             total_end_gap = 0
             line_count = 0
             for line, current_top in line_positions:
+                if is_section_header(line, page):
+                    continue
                 end_gap = page.width - max(
                     [char for char in chars if abs(char["top"] - current_top) < 2],
                     key=lambda c: c["x1"]
@@ -104,7 +115,7 @@ def process_plumber(file_path):
 
             previous_top = None
             end_gap = 0
-            print("new page")
+            # print("new page")
             for line, current_top in line_positions:
                 if is_header_footer(line, page_number):
                     continue
@@ -173,15 +184,23 @@ def process_plumber(file_path):
 
     return sections
 
-def blockify(partitions, char_limit=1000):
+def blockify(partitions, char_limit=2000):
     blocks = []
     current_block = {"content": "", "page_numbers": set()}
     page_to_block = {}
 
     previous_type = None  # Track the type of the previous partition
-
     def add_block():
         """Finalize the current block and add it to the blocks list."""
+        # print("add block")
+        if len(current_block["content"]) == 0:
+            return
+        while True:
+            try:
+                # current_block["content"] = fix_typo(current_block["content"])
+                break
+            except:
+                sleep(2)
         if current_block["content"].strip():
             blocks.append(current_block.copy())
             for page in current_block["page_numbers"]:
@@ -190,6 +209,7 @@ def blockify(partitions, char_limit=1000):
                 page_to_block[page].append(len(blocks) - 1)  # Map page number to block index
             current_block["content"] = ""
             current_block["page_numbers"] = set()
+        
 
     for partition in partitions:
         partition_length = len(partition["content"])
@@ -225,28 +245,83 @@ def blockify(partitions, char_limit=1000):
 def page_to_block_query(page_number, page_to_block):
     return page_to_block[page_number]
 
-file_path = root + r"\\misc\booksumary\pl-18-23.pdf"
+def write_blocks_to_file(blocks, file_path):
+    """
+    Writes block information to a text file.
+
+    Args:
+        blocks (list): A list of blocks, each containing 'content' and 'page_numbers'.
+        file_path (str): Path to the output text file.
+    """
+    with open(file_path, "w", encoding="utf-8") as file:
+        for idx, block in enumerate(blocks):
+            # Write block header
+            file.write(f"Block {idx + 1}:\n")
+            # Write block content
+            file.write(f"Content:\n{block['content']}\n")
+            # Write page numbers
+            pages = ", ".join(map(str, sorted(block["page_numbers"])))
+            file.write(f"Page Numbers: {pages}\n")
+            # Separator for readability
+            file.write("\n" + "=" * 40 + "\n\n")
+
+def get_block_content(file_path, block_index):
+    """
+    Retrieves the content of a specific block by its index from a file, excluding page number information.
+
+    Args:
+        file_path (str): Path to the file containing block information.
+        block_index (int): The index of the block to retrieve (1-based).
+
+    Returns:
+        str: The content of the block without page numbers, or None if the block is not found.
+    """
+    block_header = f"Block {block_index}:"
+    in_block = False
+    content_lines = []
+
+    with open(file_path, "r", encoding="utf-8") as file:
+        for line in file:
+            # Check if we're entering the desired block
+            if line.strip() == block_header:
+                in_block = True
+                continue
+            
+            # If we're in the block, collect its content
+            if in_block:
+                # Stop collecting if we hit the next block or a separator
+                if line.strip().startswith("Block ") or line.strip() == "=" * 40:
+                    break
+                if line.strip().startswith("Page Numbers:"):
+                    continue
+            
+                content_lines.append(line.strip())
+    return "\n".join(content_lines) if content_lines else None
+
+
+file_path = root + r"\\misc\booksumary\thach-sanh.pdf"
 sections = process_plumber(file_path)
 
 # Print the output
-for i, section in enumerate(sections):
-    print(f"Section {i + 1}", len(section['content']))
-    print(f"Type: {section['type']}")
-    print(f"Content: {section['content']}")
-    print(f"Page Numbers: {sorted(section['page_numbers'])}")
-    print("-" * 50)
-
+# for i, section in enumerate(sections):
+#     print(f"Section {i + 1}", len(section['content']))
+#     print(f"Type: {section['type']}")
+#     print(f"Content: {section['content']}")
+#     print(f"Page Numbers: {sorted(section['page_numbers'])}")
+#     print("-" * 50)
+# print("partitioned")
 blocks, page_to_block = blockify(sections)
+des_path = root + r"\\misc\booksumary\block.txt"
+write_blocks_to_file(blocks, des_path)
 
-# Output results
-print("Blocks:")
-for i, block in enumerate(blocks):
-    print(i, len(block['content']))
-    print(block['content'])
-    print(block['page_numbers'])
-    print()
+# Path to the block file
+block_file_path = root + r"\\misc\booksumary\block.txt"
 
-print("\nPage-Block Mapping:")
-print(page_to_block)
+# Retrieve the content of Block 2
+block_index = 10
+block_content = get_block_content(block_file_path, block_index)
 
-print("\nquery:", page_to_block_query(3, page_to_block))
+if block_content:
+    print(f"Content of Block {block_index}:\n{block_content}")
+else:
+    print(f"Block {block_index} not found in the file.")
