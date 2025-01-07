@@ -1,13 +1,16 @@
+# from summary_tree import SparseTableSummarizer
 from summary_tree import SparseTableSummarizer
 from unstructured.partition.auto import partition
 
 # Extract text from the PDF
-elements = partition(r"misc/booksumary/book.pdf")
-
+import os
+root = os.getcwd()
+file_path = root + r"\\misc\booksumary\pl-18-23.pdf"
+print(os.path.exists(file_path)) 
+elements = partition(file_path)
 # Combine extracted elements into a single text
 text = "\n\n".join([str(el) for el in elements])
 
-print(len(elements))
 
 # Initial placeholder summary
 summary = "Chưa có gì được tóm tắt"

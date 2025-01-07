@@ -227,6 +227,7 @@ class SparseTableSummarizer:
 
         for i in range(self.n):
             summary = summarize(self.elements[i])
+            print(" len element:", len(self.elements[i]))
             self.summaries.append(summary)
             print("-------------Done adding summary for element: ", i)
             self.st[i][0] = summary
