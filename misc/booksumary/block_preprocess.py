@@ -5,6 +5,7 @@ from collections import defaultdict
 from groq import Groq
 from openai import OpenAI
 from time import sleep
+import json
 # from dotenv import load_dotenv
 # load_dotenv()
 
@@ -277,6 +278,45 @@ def write_blocks_to_file(blocks, book_name):
             # Separator for readability
             file.write("\n" + "=" * 40 + "\n\n")
 
+# def write_page_to_block(book_name, page_to_block_map):
+#     file_path = root + r"\\misc\booksumary\block-mapping" + book_name + ".json"
+#     """
+#     Writes the page-to-block mapping to a file in JSON-like format.
+
+#     Args:
+#         file_path (str): The path to the output file.
+#         page_to_block_map (dict): A dictionary where the keys are page indices (int)
+#                                   and the values are lists of block indices (int).
+#     """
+#     # Convert page indices and block lists to the desired string format
+#     formatted_map = {
+#         str(page_index): block_indices
+#         for page_index, block_indices in page_to_block_map.items()
+#     }
+    
+#     # Write to the file in a readable format
+#     with open(file_path, "w", encoding="utf-8") as file:
+#         json.dump(formatted_map, file, indent=4)
+
+def write_page_to_block(book_name, page_to_block_map):
+    file_path = root + r"\\misc\booksumary\block-mapping-" + book_name + ".json"
+    """
+    Writes the page-to-block mapping to a file in JSON-like format where each list of blocks is on the same line.
+
+    Args:
+        file_path (str): The path to the output file.
+        page_to_block_map (dict): A dictionary where the keys are page indices (int)
+                                  and the values are lists of block indices (int).
+    """
+    with open(file_path, "w", encoding="utf-8") as file:
+        file.write("{\n")
+        total_items = len(page_to_block_map)
+        for idx, (page_index, block_indices) in enumerate(page_to_block_map.items(), start=1):
+            blocks = ", ".join(map(str, block_indices))
+            comma = "," if idx < total_items else ""  # Add a comma unless it's the last item
+            file.write(f'    "{page_index}": [{blocks}]{comma}\n')
+        file.write("}\n")
+
 def get_block_content(block_index, book_name):
     """
     Retrieves the content of a specific block by its index from a file, excluding page number information.
@@ -311,7 +351,7 @@ def get_block_content(block_index, book_name):
                 content_lines.append(line.strip())
     return "\n".join(content_lines) if content_lines else None
 
-book_name = "thanh-giong"
+book_name = "thach-sanh"
 file_path = root + r"\\misc\booksumary" + "\\" + book_name + ".pdf"
 sections = process_plumber(file_path)
 
@@ -328,6 +368,7 @@ start_page, end_page = 1, 5
 block_list = pages_to_block_query(start_page, end_page, page_to_block)
 # print("block list:", block_list)
 write_blocks_to_file(blocks, book_name)
+write_page_to_block(book_name, page_to_block)
 
 # Path to the block file
 block_file_path = root + r"\\misc\booksumary" + "\\block-" + book_name + ".txt"
