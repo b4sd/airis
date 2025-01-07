@@ -1,56 +1,26 @@
-# from summary_tree import SparseTableSummarizer
 from summary_tree import SparseTableSummarizer
 from unstructured.partition.auto import partition
-
-# Extract text from the PDF
 import os
-root = os.getcwd()
-file_path = root + r"\\misc\booksumary\pl-18-23.pdf"
-print(os.path.exists(file_path)) 
-elements = partition(file_path)
-# Combine extracted elements into a single text
-text = "\n\n".join([str(el) for el in elements])
 
+# take elements from the booktext from assets/book/{name}/block_{index}.txt
+elements = []
+book_name = "ho-guom"
+for i in range(len(os.listdir(f"assets/book/{book_name}"))):
+    with open(f"assets/book/{book_name}/block_{i}.txt", "r", encoding="utf-8") as f:
+        elements.append(f.read())
 
-# Initial placeholder summary
-summary = "Chưa có gì được tóm tắt"
+# print(elements)
+for element in elements:
+    print(element)
 
-# Chunk size limit (in characters)
-limit = 2000
-
-# Combine elements into chunks and map pages
-temp = ""
-new_elements = []
-page_to_block_map = {}  # Mapping from page numbers to block indices
-current_block_index = 0
-
-for page_number, el in enumerate(elements, start=1):
-    el_text = str(el).strip()  # Trim whitespace
-    if len(el_text) <= 2:      # Skip empty/short elements
-        continue
-    if len(temp) + len(el_text) > limit:
-        # Save the chunk and increment block index
-        new_elements.append(temp.strip())
-        temp = ""
-        current_block_index += 1
-    temp += el_text + "\n\n"
-    page_to_block_map[page_number] = current_block_index  # Map page to current block
-
-# Append the final chunk if it's non-empty
-if temp.strip():
-    new_elements.append(temp.strip())
-
-print(len(new_elements))
-
-# Replace original elements with new chunks
-elements = new_elements
 
 # Summarize using SparseTableSummarizer
-ST = SparseTableSummarizer(elements, "book")
+ST = SparseTableSummarizer(elements, book_name)
 ST.process()
 ST.local_save()
 
-# Print page-to-block mapping
-print("Page to Block Mapping:")
-for page, block in page_to_block_map.items():
-    print(f"Page {page}: Block {block}")
+# # Print page-to-block mapping
+# print("Page to Block Mapping:")
+# for page, block in page_to_block_map.items():
+#     print(f"Page {page}: Block {block}")
+
