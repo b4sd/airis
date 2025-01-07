@@ -243,9 +243,20 @@ def blockify(partitions, char_limit=2000):
     return blocks, page_to_block
 
 def page_to_block_query(page_number, page_to_block):
+    if page_number >= len(page_to_block):
+        return
     return page_to_block[page_number]
 
-def write_blocks_to_file(blocks, file_path):
+def pages_to_block_query(start_page, end_page, page_to_block):
+    mp = set()
+    for page_idx in range(start_page, end_page + 1):
+        blocks = page_to_block_query(page_idx, page_to_block)
+        if blocks:
+            for block in blocks:
+                mp.add(block)
+    return mp
+
+def write_blocks_to_file(blocks, book_name):
     """
     Writes block information to a text file.
 
@@ -253,6 +264,7 @@ def write_blocks_to_file(blocks, file_path):
         blocks (list): A list of blocks, each containing 'content' and 'page_numbers'.
         file_path (str): Path to the output text file.
     """
+    file_path = root + r"\\misc\booksumary\block-" + book_name + ".txt"
     with open(file_path, "w", encoding="utf-8") as file:
         for idx, block in enumerate(blocks):
             # Write block header
@@ -265,7 +277,7 @@ def write_blocks_to_file(blocks, file_path):
             # Separator for readability
             file.write("\n" + "=" * 40 + "\n\n")
 
-def get_block_content(file_path, block_index):
+def get_block_content(block_index, book_name):
     """
     Retrieves the content of a specific block by its index from a file, excluding page number information.
 
@@ -276,6 +288,7 @@ def get_block_content(file_path, block_index):
     Returns:
         str: The content of the block without page numbers, or None if the block is not found.
     """
+    file_path = root + r"\\misc\booksumary\block-" + book_name + ".txt"
     block_header = f"Block {block_index}:"
     in_block = False
     content_lines = []
@@ -298,8 +311,8 @@ def get_block_content(file_path, block_index):
                 content_lines.append(line.strip())
     return "\n".join(content_lines) if content_lines else None
 
-
-file_path = root + r"\\misc\booksumary\thach-sanh.pdf"
+book_name = "ho-guom"
+file_path = root + r"\\misc\booksumary" + "\\" + book_name + ".pdf"
 sections = process_plumber(file_path)
 
 # Print the output
@@ -311,17 +324,19 @@ sections = process_plumber(file_path)
 #     print("-" * 50)
 # print("partitioned")
 blocks, page_to_block = blockify(sections)
-des_path = root + r"\\misc\booksumary\block.txt"
-write_blocks_to_file(blocks, des_path)
+start_page, end_page = 1, 5
+block_list = pages_to_block_query(start_page, end_page, page_to_block)
+print("block list:", block_list)
+write_blocks_to_file(blocks, book_name)
 
 # Path to the block file
-block_file_path = root + r"\\misc\booksumary\block.txt"
+block_file_path = root + r"\\misc\booksumary" + "\\block-" + book_name + ".txt"
 
 # Retrieve the content of Block 2
-block_index = 10
-block_content = get_block_content(block_file_path, block_index)
+# block_index = 10
+# block_content = get_block_content(block_file_path, block_index)
 
-if block_content:
-    print(f"Content of Block {block_index}:\n{block_content}")
-else:
-    print(f"Block {block_index} not found in the file.")
+# if block_content:
+#     print(f"Content of Block {block_index}:\n{block_content}")
+# else:
+#     print(f"Block {block_index} not found in the file.")
