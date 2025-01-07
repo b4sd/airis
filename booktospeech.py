@@ -23,6 +23,9 @@ class BookToSpeech(QThread):
         self.is_paused = True
         self.pause_timestamp = 0
         self.is_saying = False
+        self.is_moving = False
+        self.speaking_rate = 0.75
+        self.audio_length = []
         self.chunks = []
 
         # Initialize pygame mixer and event system
@@ -35,7 +38,7 @@ class BookToSpeech(QThread):
         self.audio_end_event = pygame.USEREVENT + 1
         pygame.mixer.music.set_endevent(self.audio_end_event)
 
-    def text_to_speech(self, text: str, AudioFolder="Audio", output_file="output.mp3"):
+    def text_to_speech(self, text: str, AudioFolder="Audio", output_file="output.mp3", speaking_rate=1.0):
         """Converts text to speech and saves it to an audio file."""
         credentials = service_account.Credentials.from_service_account_file("vision_key.json")
         client = texttospeech.TextToSpeechClient(credentials=credentials)
@@ -47,10 +50,11 @@ class BookToSpeech(QThread):
         voice = texttospeech.VoiceSelectionParams(
             language_code="vi-VN",
             ssml_gender=texttospeech.SsmlVoiceGender.FEMALE,
+
         )
 
         # Configure audio output
-        audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
+        audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3, speaking_rate=speaking_rate)
 
         # Send the request and save the audio file
         response = client.synthesize_speech(
@@ -87,14 +91,17 @@ class BookToSpeech(QThread):
         """Load all book audio files from the given book file."""
         try:
             book_path = "assets/book/" + book_name 
-            sound_path = "sound/"
+            sound_path = "sound/book/" + book_name
+
+            # Create the sound folder if it doesn't exist
+            if not os.path.exists(sound_path):
+                os.makedirs(sound_path)
+            
 
             # Clear the previous audio files in sound folder
             pygame.mixer.music.stop()
             pygame.mixer.music.unload()
             pygame.mixer.init()
-            for file in os.listdir(sound_path):
-                os.remove(os.path.join(sound_path, file))
 
             # Load book text
             self.chunks = []
@@ -105,42 +112,116 @@ class BookToSpeech(QThread):
             # Convert each chunk to speech and save it to an audio file
             for i, chunk in enumerate(self.chunks):
                 output_file = f"chunk_{i}.mp3"
-                self.text_to_speech(chunk, AudioFolder=sound_path, output_file=output_file)
-                self.book_audio_files.append(os.path.join(sound_path, output_file))        
-
+                # If the file not exists
+                path_to_file = sound_path + "/" + output_file
+                print(f"Path to file: {path_to_file}")
+                if not os.path.exists(path_to_file):
+                    self.text_to_speech(chunk, AudioFolder=sound_path, output_file=output_file, speaking_rate=self.speaking_rate)
+                self.book_audio_files.append(os.path.join(sound_path, output_file))
+                self.audio_length.append(pygame.mixer.Sound.get_length(pygame.mixer.Sound(os.path.join(sound_path, output_file))))
 
             # Load the first audio file
             if self.book_audio_files:
                 self.current_index = 0
+                self.pause_timestamp = 0
+                self.is_paused = True
+                self.is_saying = False
                 audio_file = self.book_audio_files[self.current_index]
                 pygame.mixer.music.load(audio_file)
+                self._pause_mixer()
+
+            print(f"Loaded {self.audio_length}.")
 
         except Exception as e:
             print(f"Error loading book: {e}")
 
+    def _pause_mixer(self):
+        """Process stuff"""
+        self.pause_timestamp += pygame.mixer.music.get_pos() / 1000
+        pygame.mixer.music.pause()
+
+    def _play_mixer(self):
+        """Process stuff"""
+        # Load current audio file and play it from the paused position
+        pygame.mixer.music.load(self.book_audio_files[self.current_index])
+        pygame.mixer.music.play(start=max(0, self.pause_timestamp))
+
+    def _fast_forward_mixer(self, delta=5):
+        """Process stuff"""
+        if not pygame.mixer.music.get_busy():
+            return
+        self._pause_mixer()
+        # Load current audio file and play it from the paused position
+        self.pause_timestamp += delta
+        if self.pause_timestamp <= self.audio_length[self.current_index]:
+            self._play_mixer()
+        else:
+            if self.current_index < len(self.book_audio_files) - 1:
+                self.pause_timestamp -= self.audio_length[self.current_index]
+                self.current_index += 1
+                self._play_mixer()
+
+    def _rewind_mixer(self, delta=5):
+        """Process stuff"""
+        if not pygame.mixer.music.get_busy():
+            return
+        self._pause_mixer()
+        # Load current audio file and play it from the paused position
+        self.pause_timestamp -= delta
+        if self.pause_timestamp >= 0:
+            self._play_mixer()
+        else:
+            if self.current_index > 0:
+                self.current_index -= 1
+                self.pause_timestamp += self.audio_length[self.current_index]
+                self._play_mixer()
+            else:
+                self.pause_timestamp = 0
+                self.current_index = 0
+                self._play_mixer()
+
     def resume(self):
         """Resume playing from the paused position."""
         try:
+            print("Resuming playback.")
             if self.is_paused:
                 self.is_paused = False
                 # Load the paused audio file and play it from the paused position
-                pygame.mixer.music.load(self.book_audio_files[self.current_index])
-                pygame.mixer.music.play(start=max(0, self.pause_timestamp - 5))
+                self._play_mixer()
         except Exception as e:
             print(f"Error resuming playback: {e}")
 
     def pause(self):
         """Pause playback and save the current timestamp."""
         try:
+            print("Pausing playback.")
             if pygame.mixer.music.get_busy():
                 self.is_paused = True
-                self.pause_timestamp = pygame.mixer.music.get_pos() / 1000
-                pygame.mixer.music.pause()
+                self._pause_mixer()
         except Exception as e:
             print(f"Error pausing playback: {e}")
+
+    def fast_forward(self):
+        """Fast forward the audio by 5 seconds."""
+        try:
+            print("Fast forwarding...")
+            self._fast_forward_mixer(delta=5)
+
+        except Exception as e:
+            print(f"Error fast forwarding: {e}")
+    
+    def rewind(self):
+        """Rewind the audio by 5 seconds."""
+        try:
+            print("Rewinding...")
+            self._rewind_mixer(delta=5)
+        except Exception as e:
+            print(f"Error rewinding: {e}")
+
     def play_next(self):
         """Play the next audio file in the book."""
         try:
+            print("Playing next audio...")
             if self.current_index < len(self.book_audio_files) - 1:
                 self.current_index += 1
                 audio_file = self.book_audio_files[self.current_index]
@@ -153,6 +234,7 @@ class BookToSpeech(QThread):
 
     def say(self, text):
         try:
+            print("Saying text...")
             """Pause book reading, convert text to speech, and play it immediately."""
             if pygame.mixer.music.get_busy():
                 self.pause()  # Pause book reading
@@ -166,7 +248,7 @@ class BookToSpeech(QThread):
                 os.remove("sound/temp_say_audio.mp3")
 
             output_file = "temp_say_audio.mp3"
-            self.text_to_speech(text, AudioFolder="sound", output_file=output_file)
+            self.text_to_speech(text, AudioFolder="sound", output_file=output_file, speaking_rate=self.speaking_rate)
 
             pygame.mixer.music.load("sound/" + output_file)
             pygame.mixer.music.play()
@@ -180,6 +262,7 @@ class BookToSpeech(QThread):
 
     def no_say(self):
         try:
+            print("Stopping saying...")
             """Stop the current speech."""
             if pygame.mixer.music.get_busy() and self.is_saying:
                 pygame.mixer.music.stop()
@@ -227,8 +310,12 @@ class BookToSpeech(QThread):
         while True:
             for event in pygame.event.get():
                 if event.type == self.audio_end_event:
+                    print("Audio ended.")
+                    print(f"Current index: {self.current_index}, is_paused: {self.is_paused}, is_saying: {self.is_saying}, is_moving: {self.is_moving}")
                     if self.is_saying:
                         self.is_saying = False
+                    elif self.is_moving:
+                        self.is_moving = False
                     else:
                         self.play_next()
             pygame.time.wait(1000)  # Avoid busy-waiting

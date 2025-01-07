@@ -17,6 +17,8 @@ class BookReaderApp(QWidget):
     change_book_signal = pyqtSignal(str)
     pause_signal = pyqtSignal()
     resume_signal = pyqtSignal()
+    fast_forward_signal = pyqtSignal()
+    rewind_signal = pyqtSignal()
     say_signal = pyqtSignal(str)
     next_signal = pyqtSignal()
     summary_page_signal = pyqtSignal(str, str, str, str, str)
@@ -52,6 +54,8 @@ class BookReaderApp(QWidget):
         self.change_book_signal.connect(self.booktospeech_thread.change_book)
         self.pause_signal.connect(self.booktospeech_thread.pause)
         self.resume_signal.connect(self.booktospeech_thread.resume)
+        self.fast_forward_signal.connect(self.booktospeech_thread.fast_forward)
+        self.rewind_signal.connect(self.booktospeech_thread.rewind)
         self.next_signal.connect(self.booktospeech_thread.play_next)
         self.say_signal.connect(self.booktospeech_thread.say)
         self.summary_page_signal.connect(self.booktospeech_thread.summary_page)
@@ -317,14 +321,22 @@ class BookReaderApp(QWidget):
         elif event.key() == Qt.Key_S:
             print("Key S detected, stopping speech...")
             self.stop_say_signal.emit()
-        # Key N to say next
-        elif event.key() == Qt.Key_N:
-            print("Key N detected, saying next...")
-            self.next_signal.emit()
+        # # Key N to say next
+        # elif event.key() == Qt.Key_N:
+        #     print("Key N detected, saying next...")
+        #     self.next_signal.emit()
         # Key Q to quit
         elif event.key() == Qt.Key_Q:
             print("Key Q detected, quitting...")
             self.close()
+        # Key M to fast forward
+        elif event.key() == Qt.Key_M:
+            print("Key Right detected, fast forwarding...")
+            self.fast_forward_signal.emit()
+        # Key N to rewind
+        elif event.key() == Qt.Key_N:
+            print("Key Left detected, rewinding...")
+            self.rewind_signal.emit()
         
     def start_speech_recognition(self):
         """Start speech recognition automatically shutting down after use."""
