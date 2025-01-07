@@ -4,7 +4,7 @@ import os
 
 # take elements from the booktext from assets/book/{name}/block_{index}.txt
 elements = []
-book_name = "ho-guom"
+book_name = "thach-sanh"
 for i in range(len(os.listdir(f"assets/book/{book_name}"))):
     with open(f"assets/book/{book_name}/block_{i}.txt", "r", encoding="utf-8") as f:
         elements.append(f.read())
