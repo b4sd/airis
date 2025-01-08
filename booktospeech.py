@@ -95,13 +95,19 @@ class BookToSpeech(QThread):
     def change_book(self, book_name):
         """Load all book audio files from the given book file."""
         try:
+            if book_name == "":
+                if self.lastBookRead["book"] is not None:
+                    book_name = self.lastBookRead["book"]
+                else:
+                    self.say("Chưa chọn sách nào để đọc")
+                    return
+                    
             book_path = "assets/book/" + book_name 
             sound_path = "sound/book/" + book_name
 
             # Create the sound folder if it doesn't exist
             if not os.path.exists(sound_path):
                 os.makedirs(sound_path)
-            
 
             # Clear the previous audio files in sound folder
             pygame.mixer.music.stop()
