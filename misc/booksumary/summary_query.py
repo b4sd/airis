@@ -1,6 +1,6 @@
 # Display the tree
 import json
-from summary_tree import SparseTableSummarizer
+from misc.booksumary.summary_tree import SparseTableSummarizer
 
 
 # "command": "tóm tắt", 
@@ -33,7 +33,7 @@ def query_summary_block(book_name, start_block, end_block):
     return ST.query(start_block, end_block)
 
 
-print(query_summary_block("thanh-giong", 1, 2))
+# print(query_summary_block("thanh-giong", 1, 2))
 
-print(query_summary_page("thach-sanh", 5, 8, None, None))
+# print(query_summary_page("thach-sanh", 5, 8, None, None))
 

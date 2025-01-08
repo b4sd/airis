@@ -365,6 +365,7 @@ class BookReaderApp(QWidget):
         elif result['command'] == "đọc sách":
             book_title = result['parameters']['tên sách']
             book_name = get_most_similar_book(book_title)
+
             
             if book_title == "":
                 print(f"Không tìm thấy sách.")
@@ -376,6 +377,9 @@ class BookReaderApp(QWidget):
                 print(f"Đang đọc sách {book_name}...")
                 # Emit signal to change the book
                 self.change_book_signal.emit(book_name)
+                # open the page
+                self.open_book(book_name)
+
 
         elif result['command'] == "tóm tắt":
             book_title = result['parameters']['tên sách']
