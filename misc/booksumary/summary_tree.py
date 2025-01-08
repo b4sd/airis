@@ -1,5 +1,6 @@
 import pickle
 import json
+from openai import OpenAI
 
 
 
@@ -9,14 +10,16 @@ import os
 
 from groq import Groq
 
-client = Groq(
-    api_key=GROQ_API,
-)
+api_key = 'da7862c3-43f5-49ae-bad5-19ce3fbf4139'
+client = OpenAI(
+            base_url="https://api.sambanova.ai/v1",
+            api_key=api_key,
+        )
 
-model = "llama3-70b-8192"
+model = "Qwen2.5-72B-Instruct"
+
 
 requirements = """
-
 Hãy bỏ các kí hiệu đặc biệt như #, *, _, hoặc các kí hiệu đặc biệt khác. Đừng thêm xuống dòng không cần thiết. Loại bỏ các heading và viết thành đoạn văn văn nói.
 Khi bạn đọc và gặp dấu hiệu này, hãy hiểu rằng đó là một phần mới trong văn bản. Các dấu hiệu này chỉ để giúp bạn hiểu cấu trúc của văn bản, không phải là phần của văn bản gốc.
 Chỉ trả về đoạn văn bản đã được xử lí, không được nói gì khác.
