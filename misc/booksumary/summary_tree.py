@@ -21,7 +21,7 @@ Hãy bỏ các kí hiệu đặc biệt như #, *, _, hoặc các kí hiệu đ�
 Khi bạn đọc và gặp dấu hiệu này, hãy hiểu rằng đó là một phần mới trong văn bản. Các dấu hiệu này chỉ để giúp bạn hiểu cấu trúc của văn bản, không phải là phần của văn bản gốc.
 Chỉ trả về đoạn văn bản đã được xử lí, không được nói gì khác.
 Không bao gồm bài tập, ví dụ hoặc thông tin không cần thiết khác, chỉ bao gồm các khái niệm, ý chính và thông tin cần thiết, cô đọng và dễ hiểu.
-Output của bạn không được quá 2000 từ.
+Output của bạn không được quá 2000 từ, và phải là tiếng Việt chuẩn, không sai chính tả, ngữ pháp.
 """
 
 
@@ -227,6 +227,7 @@ class SparseTableSummarizer:
 
         for i in range(self.n):
             summary = summarize(self.elements[i])
+            print(" len element:", len(self.elements[i]))
             self.summaries.append(summary)
             print("-------------Done adding summary for element: ", i)
             self.st[i][0] = summary
