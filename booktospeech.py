@@ -175,6 +175,7 @@ class BookToSpeech(QThread):
             return
 
         if self.is_saying:
+            self._pause_mixer()
             self.say_timestamp += delta
             if self.say_timestamp <= self.say_length:
                 self._play_mixer()
@@ -197,6 +198,7 @@ class BookToSpeech(QThread):
         if not pygame.mixer.music.get_busy():
             return
         if self.is_saying:
+            self._pause_mixer()
             self.say_timestamp -= delta
             self.say_timestamp = max(0, self.say_timestamp)
             self._play_mixer()
