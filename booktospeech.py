@@ -95,6 +95,13 @@ class BookToSpeech(QThread):
     def change_book(self, book_name):
         """Load all book audio files from the given book file."""
         try:
+            if book_name == "":
+                if self.lastBookRead["book"] is None:
+                    print("No book to read.")
+                    self.say("Không có sách nào để đọc.")
+                    return
+                book_name = self.lastBookRead["book"]
+            
             book_path = "assets/book/" + book_name 
             sound_path = "sound/book/" + book_name
 

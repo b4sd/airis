@@ -366,8 +366,12 @@ class BookReaderApp(QWidget):
             book_title = result['parameters']['tên sách']
             book_name = get_most_similar_book(book_title)
             
-            if book_name == "Not sure":
+            if book_title == "":
+                print("Không tìm thấy tên sách.")
+                self.change_book_signal.emit("")
+            elif book_name == "Not sure":
                 print(f"Không tìm thấy sách {book_title}.")
+                self.say_signal.emit(f"Không tìm thấy sách {book_title}.")
             else:
                 # content = get_book_content(book_name) # or redirect to the Thread Reading book + develope (store last read time into logs)
                 print(f"Đang đọc sách {book_name}...")
@@ -399,6 +403,7 @@ class BookReaderApp(QWidget):
         elif result['command'] == "get all books from database":
             books_lst = getBooks()
             text = "Đây là danh sách các sách trong cơ sở dữ liệu: " + ", ".join(books_lst)
+            self.say_signal.emit(text)
         elif result['command'] == "tiếp tục":
             # Emit signal to resume the audio
             self.resume_signal.emit()
