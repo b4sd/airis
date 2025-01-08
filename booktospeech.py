@@ -27,12 +27,17 @@ class BookToSpeech(QThread):
         self.speaking_rate = 0.75
         self.audio_length = []
         self.chunks = []
+        self.lastBookRead = {
+            "book": None,
+            "timeStamp": None,
+            "block": None
+        }
+        self.say_timestamp = 0
+        self.say_length = 0
 
         # Initialize pygame mixer and event system
         pygame.init()
         pygame.mixer.init()
-
-        
 
         # Set custom event for detecting when audio ends
         self.audio_end_event = pygame.USEREVENT + 1
@@ -129,6 +134,9 @@ class BookToSpeech(QThread):
                 audio_file = self.book_audio_files[self.current_index]
                 pygame.mixer.music.load(audio_file)
                 self._pause_mixer()
+                self.lastBookRead["book"] = book_name
+                self.lastBookRead["timeStamp"] = 0
+                self.lastBookRead["block"] = 0
 
             print(f"Loaded {self.audio_length}.")
 
@@ -137,18 +145,35 @@ class BookToSpeech(QThread):
 
     def _pause_mixer(self):
         """Process stuff"""
-        self.pause_timestamp += pygame.mixer.music.get_pos() / 1000
-        pygame.mixer.music.pause()
+        if not self.is_saying:
+            self.pause_timestamp += pygame.mixer.music.get_pos() / 1000
+            self.lastBookRead["timeStamp"] = self.pause_timestamp
+            pygame.mixer.music.pause()
+        else: # saying (summerize, qna...)
+            self.say_timestamp += pygame.mixer.music.get_pos() / 1000
+            pygame.mixer.music.pause()
 
     def _play_mixer(self):
         """Process stuff"""
         # Load current audio file and play it from the paused position
-        pygame.mixer.music.load(self.book_audio_files[self.current_index])
-        pygame.mixer.music.play(start=max(0, self.pause_timestamp))
+        if not self.is_saying: # book reading
+            pygame.mixer.music.load(self.book_audio_files[self.current_index])
+            pygame.mixer.music.play(start=max(0, self.pause_timestamp))
+        else: # saying (summerize, qna...)
+            pygame.mixer.music.play(start=max(0, self.say_timestamp))
+
 
     def _fast_forward_mixer(self, delta=5):
         """Process stuff"""
         if not pygame.mixer.music.get_busy():
+            return
+
+        if self.is_saying:
+            self.say_timestamp += delta
+            if self.say_timestamp <= self.say_length:
+                self._play_mixer()
+            else:
+                self.no_say()
             return
         self._pause_mixer()
         # Load current audio file and play it from the paused position
@@ -164,6 +189,11 @@ class BookToSpeech(QThread):
     def _rewind_mixer(self, delta=5):
         """Process stuff"""
         if not pygame.mixer.music.get_busy():
+            return
+        if self.is_saying:
+            self.say_timestamp -= delta
+            self.say_timestamp = max(0, self.say_timestamp)
+            self._play_mixer()
             return
         self._pause_mixer()
         # Load current audio file and play it from the paused position
@@ -250,13 +280,14 @@ class BookToSpeech(QThread):
             output_file = "temp_say_audio.mp3"
             self.text_to_speech(text, AudioFolder="sound", output_file=output_file, speaking_rate=self.speaking_rate)
 
+            self.say_timestamp = 0
+            self.say_length = pygame.mixer.Sound.get_length(pygame.mixer.Sound("sound/" + output_file))
+
             pygame.mixer.music.load("sound/" + output_file)
             pygame.mixer.music.play()
 
             self.is_saying = True
 
-            # while pygame.mixer.music.get_busy():
-            #     pygame.time.wait(100)
         except Exception as e:
             print(f"Error saying text: {e}")
 
@@ -314,8 +345,6 @@ class BookToSpeech(QThread):
                     print(f"Current index: {self.current_index}, is_paused: {self.is_paused}, is_saying: {self.is_saying}, is_moving: {self.is_moving}")
                     if self.is_saying:
                         self.is_saying = False
-                    elif self.is_moving:
-                        self.is_moving = False
                     else:
                         self.play_next()
             pygame.time.wait(1000)  # Avoid busy-waiting
