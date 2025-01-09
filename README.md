@@ -62,7 +62,7 @@ This application is designed to assist visually impaired individuals in accessin
 
 3. Run the application:
    ```bash
-   python app.py
+   python audiobook_gui.py.py
    ```
 
 ---
