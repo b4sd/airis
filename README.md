@@ -4,6 +4,10 @@
 
 This application is designed to assist visually impaired individuals in accessing and managing academic documents. Leveraging advanced natural language processing (NLP) and machine learning (ML) technologies, it provides comprehensive features such as content summarization, voice-based search, and efficient note management to enhance accessibility and learning experiences.
 
+### Demo
+
+[Click here to view the demo](https://drive.google.com/file/d/15wezJZsPkbLEBwJ3EeeRmTDrZ6B5DbCa/view?fbclid=IwZXh0bgNhZW0CMTAAAR3MoZjhpY_TkvvLcwOclsu9PGThO_kUBirRHFjPdYAStNL5Mx50o8fvDI8_aem_7Bq2crxMY6r5D2FK1CUTww)
+
 ---
 
 ### Features
