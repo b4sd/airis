@@ -1,0 +1,1 @@
+2. Các trường hợp chiếm hữu nào sau đây là chiếm hữu bất hợp pháp? a.  Chiếm hữu của chủ sở hữu vật. b.  Chiếm hữu vật đánh rơi không khai báo. c.  Chiếm hữu do chủ sở hữu vật uỷ quyền. d.  Chiếm hữu thông qua việc thuê vật của chủ sở hữu.
