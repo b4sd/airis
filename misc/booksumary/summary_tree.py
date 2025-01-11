@@ -212,7 +212,7 @@ class SparseTableSummarizer:
     
     def local_save(self):
         """Save the object state using JSON."""
-        with open(f"{self.name}.json", "w") as f:
+        with open(f"assets/summarize/{self.name}.json", "w") as f:
             json.dump(self.to_dict(), f)
         print(f"Object saved to {self.name}.json")
     

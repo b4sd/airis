@@ -299,7 +299,7 @@ def write_blocks_to_file(blocks, book_name):
 #         json.dump(formatted_map, file, indent=4)
 
 def write_page_to_block(book_name, page_to_block_map):
-    file_path = root + r"\\misc\booksumary\block-mapping-" + book_name + ".json"
+    file_path = root + f"\\assets\\mapping\\{book_name}.json"
     """
     Writes the page-to-block mapping to a file in JSON-like format where each list of blocks is on the same line.
 
@@ -308,6 +308,7 @@ def write_page_to_block(book_name, page_to_block_map):
         page_to_block_map (dict): A dictionary where the keys are page indices (int)
                                   and the values are lists of block indices (int).
     """
+
     with open(file_path, "w", encoding="utf-8") as file:
         file.write("{\n")
         total_items = len(page_to_block_map)
@@ -351,46 +352,13 @@ def get_block_content(block_index, book_name):
                 content_lines.append(line.strip())
     return "\n".join(content_lines) if content_lines else None
 
-book_name = "thach-sanh"
-# file_path = root + r"\\misc\booksumary" + "\\" + book_name + ".pdf"
-# sections = process_plumber(file_path)
+def write_each_block_to_file(blocks, book_name):
+    for idx, block in enumerate(blocks):
+        file_path = root + f"\\assets\\book\\{book_name}\\block_{idx}.txt"
+        # create folder if not exist
+        if not os.path.exists(os.path.dirname(file_path)):
+            os.makedirs(os.path.dirname(file_path))
 
-# # Print the output
-# # for i, section in enumerate(sections):
-# #     print(f"Section {i + 1}", len(section['content']))
-# #     print(f"Type: {section['type']}")
-# #     print(f"Content: {section['content']}")
-# #     print(f"Page Numbers: {sorted(section['page_numbers'])}")
-# #     print("-" * 50)
-# # print("partitioned")
-# blocks, page_to_block = blockify(sections)
-# start_page, end_page = 1, 5
-# block_list = pages_to_block_query(start_page, end_page, page_to_block)
-# # print("block list:", block_list)
-# write_blocks_to_file(blocks, book_name)
-# write_page_to_block(book_name, page_to_block)
+        with open(file_path, "w", encoding="utf-8") as file:
+            file.write(block['content'])
 
-# # Path to the block file
-# block_file_path = root + r"\\misc\booksumary" + "\\block-" + book_name + ".txt"
-
-# Retrieve the content of Block 2
-# block_index = 10
-# block_content = get_block_content(block_file_path, block_index)
-
-# if block_content:
-#     print(f"Content of Block {block_index}:\n{block_content}")
-# else:
-#     print(f"Block {block_index} not found in the file.")
-
-
-# save blocks to folder assets/book/{book_name}/blocks_{index}
-
-for i in range(6):
-    block_content = get_block_content(i + 1, book_name)
-
-    # remove the "Content"
-    block_content = block_content.split("\n")[1:]
-
-    # save to file
-    with open(root + f"\\assets\\book\\{book_name}\\blocks_{i}.txt", "w", encoding="utf-8") as f:
-        f.write("\n".join(block_content))
