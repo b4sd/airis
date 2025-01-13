@@ -11,3 +11,5 @@ PyQt5
 python-Levenshtein
 PyMuPDF
 openai
+langchain-text-splitters
+pydantic
