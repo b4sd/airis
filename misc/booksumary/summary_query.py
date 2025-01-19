@@ -13,9 +13,9 @@ from misc.booksumary.summary_tree import SparseTableSummarizer
 #         }},
 
 def query_summary_page(book_name, start_page, end_page, start_chapter, end_chapter):
-    ST = SparseTableSummarizer.local_load(f'misc/booksumary/{book_name}')
+    ST = SparseTableSummarizer.local_load(f'assets/summarize/{book_name}')
     block_mapping = {}
-    with open(f"misc/booksumary/block-mapping-{book_name}.json", "r") as f:
+    with open(f"assets/mapping/{book_name}.json", "r") as f:
         block_mapping = json.load(f)
 
     # start block is min block of start page
@@ -29,11 +29,9 @@ def query_summary_page(book_name, start_page, end_page, start_chapter, end_chapt
     return ST.query(start_block, end_block)
 
 def query_summary_block(book_name, start_block, end_block):
-    ST = SparseTableSummarizer.local_load(f'misc/booksumary/{book_name}')
+    ST = SparseTableSummarizer.local_load(f'assets/summarize/{book_name}')
+    print(ST)
     return ST.query(start_block, end_block)
 
 
-# print(query_summary_block("thanh-giong", 1, 2))
-
-# print(query_summary_page("thach-sanh", 5, 8, None, None))
 

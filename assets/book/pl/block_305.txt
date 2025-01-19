@@ -1,0 +1,1 @@
+3.2.Các hình thức thừa kế Có 2 hình thức thừa kế là thừa kế theo di chúc và thừa kế theo Pháp luật.

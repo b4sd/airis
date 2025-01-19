@@ -43,15 +43,20 @@ def fix_typo(text):
 
 def process_plumber(file_path):
     sections = []
-    current_section = {"type": None, "content": "", "page_numbers": set()}
+    current_section = {"type": None, "chapter": False, "content": "", "page_numbers": set()}
     
     def is_header_footer(text, page_number):
         return re.match(r"^\d+$", text.strip()) or "Header" in text or "Footer" in text
+    
+    def is_chapter(text, page):
+        """Identify chapter headers based on patterns."""
+        return (re.match(r"^(Bài|Chương)\s+\d+$", text.strip(), flags=re.UNICODE | re.IGNORECASE))
 
     def is_section_header(text, page):
         """Identify section headers based on uppercase text, patterns, or boldness."""
         return (text.strip().isupper() or
-                re.match(r"^(Section|Chapter|Part|\d+(\.\d+)*)", text.strip(), re.IGNORECASE))
+                is_chapter(text, page) or
+                re.match(r"^(Bài|Chương|Phần|Mục|\d+(\.\d+)*)", text.strip(), flags=re.UNICODE | re.IGNORECASE))
 
     def is_bullet_point(text):
         """Identify if the line is a bullet point based on common symbols."""
@@ -85,16 +90,13 @@ def process_plumber(file_path):
                     # Start a new line
                     current_line_chars = [char]
                     line_top = char_top
-
-            # Add the last line
             if current_line_chars:
                 current_line = "".join(c["text"] for c in sorted(current_line_chars, key=lambda c: c["x0"]))
                 line_positions.append((current_line.strip(), line_top))
             
             if current_line.strip():
                 line_positions.append((current_line.strip(), line_top))
-            # for line, pos in line_positions:
-            #     print("line:", line)
+
             top_positions = [pos[1] for pos in line_positions]
             line_gaps = [top_positions[i + 1] - top_positions[i] for i in range(len(top_positions) - 1)]
             average_gap = sum(line_gaps) / len(line_gaps) if line_gaps else 0
@@ -112,7 +114,7 @@ def process_plumber(file_path):
                 total_end_gap += end_gap
                 line_count += 1
             average_end_gap = total_end_gap / line_count if line_count > 0 else 0
-            end_gap_threshold = average_end_gap * 1.2 # Adjust this threshold based on your PDF layout
+            end_gap_threshold = average_end_gap * 1.2 
 
             previous_top = None
             end_gap = 0
@@ -120,13 +122,14 @@ def process_plumber(file_path):
             for line, current_top in line_positions:
                 if is_header_footer(line, page_number):
                     continue
-
-                # print("     cur:", f" {line}")
+                chapter = False
+                # print(" line:", f"{line}")
                 if is_section_header(line, page):
                     if current_section["content"].strip():
                         sections.append(current_section)
                     current_section = {
                         "type": "header",
+                        "chapter": chapter,
                         "content": line,
                         "page_numbers": {page_number}
                     }
@@ -142,6 +145,7 @@ def process_plumber(file_path):
                     current_section = {
                         "type": "bullet point",
                         "content": line,
+                        "chapter": chapter,
                         "page_numbers": {page_number}
                     }
                     previous_top = current_top
@@ -161,6 +165,7 @@ def process_plumber(file_path):
                         current_section = {
                             "type": "narrative text",
                             "content": line,
+                            "chapter": chapter,
                             "page_numbers": {page_number}
                         }
 
@@ -172,6 +177,7 @@ def process_plumber(file_path):
                             current_section = {
                                 "type": "narrative text",
                                 "content": line,
+                                "chapter": chapter,
                                 "page_numbers": {page_number}
                             }
                 end_gap = page.width - max(
@@ -179,6 +185,10 @@ def process_plumber(file_path):
                     key=lambda c: c["x1"]
                 )["x1"]
                 previous_top = current_top
+                if is_chapter(line, page):
+                    current_section["chapter"] = True
+                    # print(" line is chapter:", f"{line}")
+                # print(" final:", current_section["chapter"])
 
     if current_section["content"].strip():
         sections.append(current_section)
@@ -187,11 +197,13 @@ def process_plumber(file_path):
 
 def blockify(partitions, char_limit=2000):
     blocks = []
+    chapters = []
     current_block = {"content": "", "page_numbers": set()}
     page_to_block = {}
+    current_chapter = {"left": None, "right": None}
 
     previous_type = None  # Track the type of the previous partition
-    def add_block():
+    def add_block(is_chapter = False):
         """Finalize the current block and add it to the blocks list."""
         # print("add block")
         if len(current_block["content"]) == 0:
@@ -203,20 +215,35 @@ def blockify(partitions, char_limit=2000):
             except:
                 sleep(2)
         if current_block["content"].strip():
+            if is_chapter:
+                if current_chapter["left"] is not None:
+                    # print("   is chapter; content (excluded):", current_block["content"])
+                    current_chapter["right"] = len(blocks)
+                    chapters.append(current_chapter.copy())
+                current_chapter["left"] = len(blocks) + 1
+                current_chapter["right"] = None
+
             blocks.append(current_block.copy())
             for page in current_block["page_numbers"]:
                 if page not in page_to_block:
                     page_to_block[page] = []
                 page_to_block[page].append(len(blocks) - 1)  # Map page number to block index
+            
             current_block["content"] = ""
             current_block["page_numbers"] = set()
         
-
+        
     for partition in partitions:
         partition_length = len(partition["content"])
-
+        if partition["chapter"] == True:
+            # print(" n_blocks:", len(blocks), current_chapter["left"], current_chapter["right"], current_block["content"])
+            add_block(is_chapter=True)
+            current_block["content"] += (current_block["content"] and " ") + partition["content"]
+            current_block["page_numbers"].update(partition["page_numbers"])
+            # print(" next content:", current_block["content"])
+            # print()
         # Check if the current partition is a header
-        if partition["type"] == "header":
+        elif partition["type"] == "header":
             # If the previous partition was not a header, finalize the current block
             if previous_type != "header":
                 add_block()
@@ -228,6 +255,7 @@ def blockify(partitions, char_limit=2000):
         else:
             # For non-header partitions, check if adding it exceeds the char limit
             if partition_length + len(current_block["content"]) > char_limit:
+                # print("lim")
                 # Finalize the current block if it exceeds the limit
                 add_block()
 
@@ -239,9 +267,9 @@ def blockify(partitions, char_limit=2000):
         previous_type = partition["type"]
 
     # Finalize the last block
-    add_block()
+    add_block(is_chapter=True)
 
-    return blocks, page_to_block
+    return blocks, chapters, page_to_block
 
 def page_to_block_query(page_number, page_to_block):
     if page_number >= len(page_to_block):
@@ -299,7 +327,7 @@ def write_blocks_to_file(blocks, book_name):
 #         json.dump(formatted_map, file, indent=4)
 
 def write_page_to_block(book_name, page_to_block_map):
-    file_path = root + r"\\misc\booksumary\block-mapping-" + book_name + ".json"
+    file_path = root + f"\\assets\\mapping\\{book_name}.json"
     """
     Writes the page-to-block mapping to a file in JSON-like format where each list of blocks is on the same line.
 
@@ -308,6 +336,7 @@ def write_page_to_block(book_name, page_to_block_map):
         page_to_block_map (dict): A dictionary where the keys are page indices (int)
                                   and the values are lists of block indices (int).
     """
+
     with open(file_path, "w", encoding="utf-8") as file:
         file.write("{\n")
         total_items = len(page_to_block_map)
@@ -315,6 +344,28 @@ def write_page_to_block(book_name, page_to_block_map):
             blocks = ", ".join(map(str, block_indices))
             comma = "," if idx < total_items else ""  # Add a comma unless it's the last item
             file.write(f'    "{page_index}": [{blocks}]{comma}\n')
+        file.write("}\n")
+
+def write_chapter_to_block(book_name, chapter_map):
+    file_path = root + f"\\assets\\chapter\\{book_name}.json"
+    """
+    Writes the page-to-block mapping to a file in JSON-like format where each list of blocks is on the same line.
+
+    Args:
+        file_path (str): The path to the output file.
+        page_to_block_map (dict): A dictionary where the keys are page indices (int)
+                                  and the values are lists of block indices (int).
+    """
+
+    with open(file_path, "w", encoding="utf-8") as file:
+        file.write("{\n")
+        total_items = len(chapter_map)
+        print("n items:", total_items)
+        for index, chapter in enumerate(chapter_map):
+            left = chapter["left"]
+            right = chapter["right"]
+            comma = "," if index < total_items - 1 else "" 
+            file.write(f'    "{index + 1}": [{left}, {right}]{comma}\n')
         file.write("}\n")
 
 def get_block_content(block_index, book_name):
@@ -351,46 +402,13 @@ def get_block_content(block_index, book_name):
                 content_lines.append(line.strip())
     return "\n".join(content_lines) if content_lines else None
 
-book_name = "thach-sanh"
-# file_path = root + r"\\misc\booksumary" + "\\" + book_name + ".pdf"
-# sections = process_plumber(file_path)
+def write_each_block_to_file(blocks, book_name):
+    for idx, block in enumerate(blocks):
+        file_path = root + f"\\assets\\book\\{book_name}\\block_{idx}.txt"
+        # create folder if not exist
+        if not os.path.exists(os.path.dirname(file_path)):
+            os.makedirs(os.path.dirname(file_path))
 
-# # Print the output
-# # for i, section in enumerate(sections):
-# #     print(f"Section {i + 1}", len(section['content']))
-# #     print(f"Type: {section['type']}")
-# #     print(f"Content: {section['content']}")
-# #     print(f"Page Numbers: {sorted(section['page_numbers'])}")
-# #     print("-" * 50)
-# # print("partitioned")
-# blocks, page_to_block = blockify(sections)
-# start_page, end_page = 1, 5
-# block_list = pages_to_block_query(start_page, end_page, page_to_block)
-# # print("block list:", block_list)
-# write_blocks_to_file(blocks, book_name)
-# write_page_to_block(book_name, page_to_block)
+        with open(file_path, "w", encoding="utf-8") as file:
+            file.write(block['content'])
 
-# # Path to the block file
-# block_file_path = root + r"\\misc\booksumary" + "\\block-" + book_name + ".txt"
-
-# Retrieve the content of Block 2
-# block_index = 10
-# block_content = get_block_content(block_file_path, block_index)
-
-# if block_content:
-#     print(f"Content of Block {block_index}:\n{block_content}")
-# else:
-#     print(f"Block {block_index} not found in the file.")
-
-
-# save blocks to folder assets/book/{book_name}/blocks_{index}
-
-for i in range(6):
-    block_content = get_block_content(i + 1, book_name)
-
-    # remove the "Content"
-    block_content = block_content.split("\n")[1:]
-
-    # save to file
-    with open(root + f"\\assets\\book\\{book_name}\\blocks_{i}.txt", "w", encoding="utf-8") as f:
-        f.write("\n".join(block_content))
